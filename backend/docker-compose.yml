@@ -1,0 +1,40 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: wallet_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE:      wallet_db
+      MYSQL_USER:          wallet_user
+      MYSQL_PASSWORD:      wallet_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wallet_user", "-pwallet_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: wallet_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST:     db
+      DB_PORT:     3306
+      DB_USER:     wallet_user
+      DB_PASSWORD: wallet_pass
+      DB_NAME:     wallet_db
+      PORT:        3000
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
